@@ -3369,15 +3369,16 @@ More info: https://emscripten.org
               ['-o', 'embind_tsgen.mjs', '-lembind', '--emit-tsd', 'embind_tsgen.d.ts'] + opts)
 
     # Test that the output compiles with a TS file that uses the defintions.
-    shutil.copyfile(test_file('other/embind_tsgen.ts'), 'main.ts')
-    # A package file with type=module is needed to allow top level await in TS.
+    shutil.copyfile(test_file('other/embind_tsgen_main.ts'), 'main.ts')
+    # A package file with type=module is needed to tell the TSC that we're
+    # using modules.
     shutil.copyfile(test_file('other/embind_tsgen_package.json'), 'package.json')
     cmd = shared.get_npm_cmd('tsc') + ['embind_tsgen.d.ts', 'main.ts', '--module', 'NodeNext', '--moduleResolution', 'nodenext']
     shared.check_call(cmd)
     self.assertContained('main ran\nts ran', self.run_js('main.js'))
 
     actual = read_file('embind_tsgen.d.ts')
-    self.assertFileContents(test_file('other/embind_tsgen.d.ts'), actual)
+    self.assertFileContents(test_file('other/embind_tsgen_module.d.ts'), actual)
 
   def test_embind_tsgen_ignore(self):
     create_file('fail.js', 'assert(false);')

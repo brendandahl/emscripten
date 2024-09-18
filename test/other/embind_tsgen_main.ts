@@ -1,7 +1,9 @@
+// Example TS program that consumes the emscripten-generated module to to
+// illustrate how the type definitions are used and test they are workings as
+// expected.
+import moduleFactory from './embind_tsgen.mjs';
 
-import moduleLoader from './embind_tsgen.mjs';
-
-const module = await moduleLoader();
+const module = await moduleFactory();
 
 // Test a few variations of passing value_objects with strings.
 module.setValObj({
