@@ -11,6 +11,8 @@
 
 // check for full engine support (use string 'subarray' to avoid closure compiler confusion)
 
+addOnArgs(() => {
+
 #if PTHREADS
 if (!ENVIRONMENT_IS_PTHREAD) {
 #endif // PTHREADS
@@ -56,3 +58,4 @@ if (!ENVIRONMENT_IS_PTHREAD) {
 }
 #endif
 
+}); // addOnArgs callback

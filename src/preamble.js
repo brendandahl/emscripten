@@ -153,7 +153,11 @@ var HEAP_DATA_VIEW;
 #endif
 
 #if ASSERTIONS
-assert(!Module['STACK_SIZE'], 'STACK_SIZE can no longer be set at runtime.  Use -sSTACK_SIZE at link time')
+{{{
+  addAtArgs(() => {
+    assert(!Module['STACK_SIZE'], 'STACK_SIZE can no longer be set at runtime.  Use -sSTACK_SIZE at link time')
+  });
+}}}
 #endif
 
 #if ASSERTIONS
@@ -165,13 +169,18 @@ assert(typeof Int32Array != 'undefined' && typeof Float64Array !== 'undefined' &
 // In non-standalone/normal mode, we create the memory here.
 #include "runtime_init_memory.js"
 #elif ASSERTIONS
-// If memory is defined in wasm, the user can't provide it, or set INITIAL_MEMORY
-assert(!Module['wasmMemory'], 'Use of `wasmMemory` detected.  Use -sIMPORTED_MEMORY to define wasmMemory externally');
-assert(!Module['INITIAL_MEMORY'], 'Detected runtime INITIAL_MEMORY setting.  Use -sIMPORTED_MEMORY to define wasmMemory dynamically');
+{{{
+  addAtArgs(() => {
+    // If memory is defined in wasm, the user can't provide it, or set INITIAL_MEMORY
+    assert(!Module['wasmMemory'], 'Use of `wasmMemory` detected.  Use -sIMPORTED_MEMORY to define wasmMemory externally');
+    assert(!Module['INITIAL_MEMORY'], 'Detected runtime INITIAL_MEMORY setting.  Use -sIMPORTED_MEMORY to define wasmMemory dynamically');
+  });
+}}}
 #endif // !IMPORTED_MEMORY && ASSERTIONS
 
 #include "runtime_stack_check.js"
 
+var __ATARGS__    = []; // XXX
 var __ATPRERUN__  = []; // functions called before the runtime is initialized
 var __ATINIT__    = []; // functions called during startup
 #if HAS_MAIN
@@ -296,6 +305,10 @@ function postRun() {
 #endif
 
   callRuntimeCallbacks(__ATPOSTRUN__);
+}
+
+function addOnArgs(cb) {
+  __ATARGS__.unshift(cb);
 }
 
 function addOnPreRun(cb) {
@@ -496,8 +509,12 @@ var FS = {
 
   ErrnoError() { FS.error() },
 };
-Module['FS_createDataFile'] = FS.createDataFile;
-Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
+{{{
+  addAtArgs(() => {
+    Module['FS_createDataFile'] = FS.createDataFile;
+    Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
+  });
+}}}
 #endif
 
 #include "URIUtils.js"
@@ -925,9 +942,18 @@ function getWasmImports() {
   }
 }
 
+function atArgs(Module) {
+  <<< ATARGS >>>
+  callRuntimeCallbacks(__ATARGS__);
+}
+
 // Create the wasm instance.
 // Receives the wasm imports, returns the exports.
 function createWasm() {
+#if MODULARIZE
+  Module = moduleArg;
+#endif
+  atArgs(Module);
   var info = getWasmImports();
   // Load the wasm module and create an instance of using native support in the JS engine.
   // handle a generated wasm instance, receiving its exports and

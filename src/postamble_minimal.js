@@ -251,6 +251,8 @@ WebAssembly.instantiate(Module['wasm'], imports).then((output) => {
 #endif // ASSERTIONS || WASM == 2
 );
 
+<<< ATARGS >>>
+
 #if PTHREADS
 }
 

@@ -694,9 +694,20 @@ function makeEval(code) {
   return ret;
 }
 
+export const ATARGS = [];
+
 export const ATMAINS = [];
 
 export const ATINITS = [];
+
+function addAtArgs(code) {
+  if (typeof code === 'function') {
+    code = code.toString();
+    code = code.substring(code.indexOf("{") + 1, code.lastIndexOf("}"));
+  }
+  ATARGS.push(code.toString());
+  return '';
+}
 
 function addAtInit(code) {
   ATINITS.push(code);
@@ -821,7 +832,8 @@ function isSymbolNeeded(symName) {
 function makeRemovedModuleAPIAssert(moduleName, localName) {
   if (!ASSERTIONS) return '';
   localName ||= moduleName;
-  return `legacyModuleProp('${moduleName}', '${localName}');`;
+  ATARGS.push(`legacyModuleProp('${moduleName}', '${localName}');`);
+  return '';
 }
 
 function checkReceiving(name) {
@@ -838,16 +850,28 @@ function makeModuleReceive(localName, moduleName) {
   if (expectToReceiveOnModule(moduleName)) {
     // Usually the local we use is the same as the Module property name,
     // but sometimes they must differ.
-    ret = `\nif (Module['${moduleName}']) ${localName} = Module['${moduleName}'];`;
+    ATARGS.push(`\nif (Module['${moduleName}']) ${localName} = Module['${moduleName}'];`);
   }
   ret += makeRemovedModuleAPIAssert(moduleName, localName);
-  return ret;
+  return '';
 }
 
 function makeModuleReceiveExpr(name, defaultValue) {
   checkReceiving(name);
   if (expectToReceiveOnModule(name)) {
     return `Module['${name}'] || ${defaultValue}`;
+  } else {
+    return `${defaultValue}`;
+  }
+}
+
+function makeModuleReceiveUpdateVar(name, defaultValue) {
+  checkReceiving(name);
+  if (expectToReceiveOnModule(name)) {
+    if (isSymbolNeeded('$' + name)) {
+      ATARGS.push(`${name} = Module['${name}'] || ${defaultValue};`);
+    }
+    return 'undefined';
   } else {
     return `${defaultValue}`;
   }
@@ -863,10 +887,11 @@ function makeModuleReceiveWithVar(localName, moduleName, defaultValue, noAssert)
     }
     ret += ';';
   } else {
+    ret += ';';
     if (defaultValue) {
-      ret += ` = Module['${moduleName}'] || ${defaultValue};`;
+      ATARGS.push(`${localName} = Module['${moduleName}'] || ${defaultValue};`);
     } else {
-      ret += ` = Module['${moduleName}'];`;
+      ATARGS.push(`${localName} = Module['${moduleName}'];`);
     }
   }
   if (!noAssert) {
@@ -1112,6 +1137,7 @@ addToCompileTimeContext({
   TARGET_NOT_SUPPORTED,
   WASM_PAGE_SIZE,
   ENVIRONMENT_IS_MAIN_THREAD,
+  addAtArgs,
   addAtExit,
   addAtInit,
   addReadyPromiseAssertions,
@@ -1141,6 +1167,7 @@ addToCompileTimeContext({
   makeModuleReceive,
   makeModuleReceiveExpr,
   makeModuleReceiveWithVar,
+  makeModuleReceiveUpdateVar,
   makeRemovedFSAssert,
   makeRemovedModuleAPIAssert,
   makeRetainedCompilerSettings,

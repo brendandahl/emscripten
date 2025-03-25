@@ -8,6 +8,7 @@
 // before this stage, which just does the final conversion to JavaScript.
 
 import {
+  ATARGS,
   ATEXITS,
   ATINITS,
   ATMAINS,
@@ -769,6 +770,7 @@ var proxiedFunctionTable = [
           warnings: warningOccured(),
           asyncFuncs,
           libraryDefinitions: LibraryManager.libraryDefinitions,
+          ATARGS: ATARGS.join('\n'),
           ATINITS: ATINITS.join('\n'),
           ATMAINS: STRICT ? '' : ATMAINS.join('\n'),
           ATEXITS: ATEXITS.join('\n'),
