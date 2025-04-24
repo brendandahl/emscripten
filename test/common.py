@@ -39,6 +39,7 @@ from tools.shared import get_canonical_temp_dir, path_from_root
 from tools.utils import MACOS, WINDOWS, read_file, read_binary, write_binary, exit_with_error
 from tools.settings import COMPILE_TIME_SETTINGS
 from tools import shared, feature_matrix, building, config, utils
+from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger('common')
 
@@ -2253,16 +2254,10 @@ class BrowserCore(RunnerCore):
   def browser_restart(cls):
     # Kill existing browser
     logger.info('Restarting browser process')
-    cls.browser_proc.terminate()
-    # If the browser doesn't shut down gracefully (in response to SIGTERM)
-    # after 2 seconds kill it with force (SIGKILL).
-    try:
-      cls.browser_proc.wait(2)
-    except subprocess.TimeoutExpired:
-      logger.info('Browser did not respond to `terminate`.  Using `kill`')
-      cls.browser_proc.kill()
-      cls.browser_proc.wait()
-    cls.browser_open(cls.HARNESS_URL)
+    cls.browser.close()
+    cls.browser = cls.playwright.chromium.launch()
+    page = cls.browser.new_page()
+    page.goto(cls.HARNESS_URL)
 
   @classmethod
   def browser_open(cls, url):
@@ -2272,7 +2267,11 @@ class BrowserCore(RunnerCore):
       EMTEST_BROWSER = 'google-chrome'
     browser_args = shlex.split(EMTEST_BROWSER)
     logger.info('Launching browser: %s', str(browser_args))
-    cls.browser_proc = subprocess.Popen(browser_args + [url])
+    cls.playwright = sync_playwright().start()
+    # TODO choose the right browser here
+    cls.browser = cls.playwright.chromium.launch()
+    page = cls.browser.new_page()
+    page.goto(url)
 
   @classmethod
   def setUpClass(cls):
@@ -2297,6 +2296,8 @@ class BrowserCore(RunnerCore):
       # On Windows, shutil.rmtree() in tearDown() raises this exception if we do not wait a bit:
       # WindowsError: [Error 32] The process cannot access the file because it is being used by another process.
       time.sleep(0.1)
+    cls.browser.close()
+    cls.playwright.stop()
 
   def is_browser_test(self):
     return True
