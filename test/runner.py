@@ -490,6 +490,8 @@ def parse_args():
   parser.add_argument('--crossplatform-only', action='store_true')
   parser.add_argument('--repeat', type=int, default=1,
                       help='Repeat each test N times (default: 1).')
+  parser.add_argument('--compile-once', action='store_true',
+                      help='Compile the test only once, if repeated. Only compatible with tests using btest and btest_exit.')
   parser.add_argument('--bell', action='store_true', help='Play a sound after the test suite finishes.')
   return parser.parse_args()
 
@@ -502,6 +504,9 @@ def configure():
   common.EMTEST_ALL_ENGINES = int(os.getenv('EMTEST_ALL_ENGINES', '0'))
   common.EMTEST_SKIP_SLOW = int(os.getenv('EMTEST_SKIP_SLOW', '0'))
   common.EMTEST_SKIP_FLAKY = int(os.getenv('EMTEST_SKIP_FLAKY', '0'))
+  common.EMTEST_COMPILE_ONCE = int(os.getenv('EMTEST_COMPILE_ONCE', '0'))
+  if common.EMTEST_COMPILE_ONCE:
+    common.EMTEST_SAVE_DIR = 2
   common.EMTEST_RETRY_FLAKY = int(os.getenv('EMTEST_RETRY_FLAKY', '0'))
   common.EMTEST_LACKS_NATIVE_CLANG = int(os.getenv('EMTEST_LACKS_NATIVE_CLANG', '0'))
   common.EMTEST_REBASELINE = int(os.getenv('EMTEST_REBASELINE', '0'))
@@ -557,6 +562,7 @@ def main():
   set_env('EMTEST_VERBOSE', options.verbose)
   set_env('EMTEST_CORES', options.cores)
   set_env('EMTEST_FORCE64', options.force64)
+  set_env('EMTEST_COMPILE_ONCE', options.compile_once)
 
   configure()
 

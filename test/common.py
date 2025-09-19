@@ -64,6 +64,7 @@ EMTEST_BROWSER_AUTO_CONFIG = None
 EMTEST_HEADLESS = None
 EMTEST_DETECT_TEMPFILE_LEAKS = None
 EMTEST_SAVE_DIR = None
+EMTEST_COMPILE_ONCE = None
 # generally js engines are equivalent, testing 1 is enough. set this
 # to force testing on all js engines, good to find js engine bugs
 EMTEST_ALL_ENGINES = None
@@ -1093,6 +1094,7 @@ class RunnerCore(unittest.TestCase, metaclass=RunnerMeta):
   # override these
   temp_dir = shared.TEMP_DIR
   canonical_temp_dir = get_canonical_temp_dir(shared.TEMP_DIR)
+  compiled = False
 
   # This avoids cluttering the test runner output, which is stderr too, with compiler warnings etc.
   # Change this to None to get stderr reporting, for debugging purposes
@@ -2829,6 +2831,9 @@ class BrowserCore(RunnerCore):
       print('(moving on..)')
 
   def compile_btest(self, filename, cflags, reporting=Reporting.FULL):
+    if EMTEST_COMPILE_ONCE and self.compiled:
+      return
+    self.compiled = True
     # Inject support code for reporting results. This adds an include a header so testcases can
     # use REPORT_RESULT, and also adds a cpp file to be compiled alongside the testcase, which
     # contains the implementation of REPORT_RESULT (we can't just include that implementation in
@@ -2880,7 +2885,8 @@ class BrowserCore(RunnerCore):
     outfile = output_basename + '.html'
     cflags += ['-o', outfile]
     # print('cflags:', cflags)
-    utils.delete_file(outfile)
+    if EMTEST_SAVE_DIR != 2:
+      utils.delete_file(outfile)
     self.compile_btest(filename, cflags, reporting=reporting)
     self.assertExists(outfile)
     if post_build:
