@@ -268,6 +268,11 @@ class Ports:
         commands.append(cmd)
         objects.append(obj)
 
+      if port_name in {'sdl2_ttf', 'sdl3_ttf'} and os.getenv('INJECT_PORT_RACE'):
+        import time
+        logger.info(f'Sleeping in build_port for {port_name} to allow concurrent process to trigger race...')
+        time.sleep(3.0)
+
       system_libs.run_build_commands(commands, num_inputs=len(srcs))
       system_libs.create_lib(output_path, objects)
 
@@ -399,7 +404,7 @@ class Ports:
       return os.path.exists(marker) and utils.read_file(marker).strip() == url
 
     # before acquiring the lock we have an early out if the port already exists
-    if up_to_date():
+    if up_to_date() and not (os.getenv('INJECT_PORT_RACE') and name == 'harfbuzz'):
       return True
 
     # main logic. do this under a cache lock, since we don't want multiple jobs to
@@ -409,7 +414,7 @@ class Ports:
       if os.path.exists(fullpath):
         # Another early out in case another process unpackage the library while we were
         # waiting for the lock
-        if up_to_date():
+        if up_to_date() and not (os.getenv('INJECT_PORT_RACE') and name == 'harfbuzz'):
           return True
         # file exists but tag is bad
         logger.warning('local copy of port is not correct, retrieving from remote server')
@@ -418,6 +423,9 @@ class Ports:
 
       retrieve()
       unpack()
+      if os.getenv('INJECT_PORT_RACE') and name == 'harfbuzz':
+        import time
+        time.sleep(1.0)
 
       return False
 
